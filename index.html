@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f2f0e8">
+    <meta name="description" content="Explore the pentagon's beautiful geometry, one random step at a time.">
+    <title>Cresent | Pentagon Fractal</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --paper: #f2f0e8;
+            --ink: #17241d;
+            --muted: #788078;
+            --line: #d7d9ce;
+            --green: #b6ef67;
+            --coral: #ff765e;
+            --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            --sans: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            min-width: 320px;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--ink);
+            background-color: var(--paper);
+            background-image: repeating-linear-gradient(0deg, transparent 0 39px, rgb(23 36 29 / 3%) 40px);
+            font-family: var(--sans);
+        }
+
+        button, input, select { font: inherit; }
+
+        .app { width: min(1440px, 100%); min-height: 100vh; margin: auto; padding: 0 42px; }
+
+        .topbar {
+            min-height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .brand { display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 750; letter-spacing: .04em; }
+        .brand-mark { width: 25px; height: 25px; display: grid; place-items: center; color: var(--green); background: var(--ink); font-size: 15px; }
+        .top-note { color: var(--muted); font: 10px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+
+        main { padding: 38px 0 30px; }
+
+        .intro { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 27px; }
+        .eyebrow { margin: 0 0 8px; color: #64734b; font: 10px var(--mono); letter-spacing: .15em; text-transform: uppercase; }
+        h1 { margin: 0; font-size: clamp(32px, 4vw, 52px); line-height: .98; font-weight: 650; letter-spacing: -.045em; }
+        .intro-copy { max-width: 290px; margin: 0 0 3px; color: #68716a; font-size: 13px; line-height: 1.65; }
+
+        .studio { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 550px; border: 1px solid var(--line); background: rgb(255 255 255 / 54%); }
+        .controls { display: flex; flex-direction: column; padding: 23px 22px 18px; border-right: 1px solid var(--line); }
+        .section-label { margin: 0 0 22px; color: #69736a; font: 10px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+        .control { margin-bottom: 25px; }
+        .control-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
+        label { font-size: 12px; font-weight: 650; }
+        output, .unit { color: #69736a; font: 11px var(--mono); }
+        input[type="range"] { display: block; width: 100%; height: 4px; margin: 0; accent-color: #476b35; cursor: pointer; }
+        .range-ends { display: flex; justify-content: space-between; margin-top: 8px; color: #92988d; font: 9px var(--mono); }
+        select { width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 0; color: var(--ink); background: transparent; font-size: 12px; }
+        .swatches { display: flex; gap: 6px; }
+        .swatch { width: 23px; height: 23px; border: 1px solid rgb(23 36 29 / 17%); border-radius: 50%; }
+        .swatch.citrus { background: #b6ef67; }
+        .swatch.reef { background: #58d7c2; }
+        .swatch.ember { background: #ff765e; }
+
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; }
+        .actions button { min-height: 40px; border: 1px solid var(--ink); cursor: pointer; font-size: 11px; font-weight: 650; transition: background-color .18s, color .18s; }
+        .primary { color: var(--paper); background: var(--ink); }
+        .primary:hover { color: var(--ink); background: var(--green); }
+        .secondary { color: var(--ink); background: transparent; }
+        .secondary:hover { background: #e4e6dc; }
+        .export { grid-column: 1 / -1; }
+
+        .canvas-area { display: flex; min-width: 0; flex-direction: column; padding: 15px; }
+        .canvas-meta { display: flex; align-items: center; justify-content: space-between; min-height: 30px; padding: 0 2px 12px; color: #798178; font: 9px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+        .live { display: inline-flex; align-items: center; gap: 7px; }
+        .live::before { width: 6px; height: 6px; border-radius: 50%; background: #89ba4d; content: ""; }
+        .canvas-frame { position: relative; display: grid; flex: 1; min-height: 0; place-items: center; overflow: hidden; background: #101914; }
+        canvas { display: block; width: min(100%, calc(100vh - 220px)); max-height: 100%; aspect-ratio: 1; }
+        .canvas-hint { position: absolute; right: 12px; bottom: 10px; color: rgb(242 240 232 / 35%); font: 9px var(--mono); pointer-events: none; }
+
+        .footer { display: flex; justify-content: space-between; gap: 20px; padding: 15px 0; color: #747d73; font: 9px var(--mono); letter-spacing: .03em; }
+        .footer span:last-child { text-align: right; }
+
+        @media (min-width: 1100px) {
+            .studio { height: min(680px, calc(100vh - 260px)); }
+        }
+
+        @media (max-width: 760px) {
+            .app { padding: 0 18px; }
+            main { padding-top: 28px; }
+            .intro { align-items: start; flex-direction: column; gap: 12px; }
+            .intro-copy { max-width: 440px; }
+            .studio { grid-template-columns: 1fr; }
+            .controls { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; padding: 18px; border-right: 0; border-bottom: 1px solid var(--line); }
+            .section-label { grid-column: 1 / -1; margin-bottom: 16px; }
+            .control { margin-bottom: 18px; }
+            .actions { grid-column: 1 / -1; margin-top: 0; }
+            .canvas-area { min-height: 360px; padding: 10px; }
+            canvas { width: min(100%, calc(100vw - 56px)); }
+            .top-note { font-size: 8px; }
+        }
+
+        @media (max-width: 420px) {
+            .app { padding: 0 12px; }
+            .controls { column-gap: 12px; padding: 15px 13px; }
+            .canvas-area { min-height: 310px; }
+            .footer { font-size: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="topbar">
+            <div class="brand"><span class="brand-mark" aria-hidden="true">⌘</span><span>CRESENT / GENERATIVE STUDIES</span></div>
+            <span class="top-note">A study in five-fold geometry</span>
+        </header>
+
+        <main>
+            <section class="intro" aria-labelledby="page-title">
+                <div>
+                    <p class="eyebrow">Randomness, with a rule</p>
+                    <h1 id="page-title">Pentagon fractal</h1>
+                </div>
+                <p class="intro-copy">Choose a corner. Move toward it. Repeat until a hidden geometry comes into focus.</p>
+            </section>
+
+            <section class="studio" aria-label="Fractal generator">
+                <aside class="controls" aria-label="Fractal settings">
+                    <p class="section-label">01 / Parameters</p>
+
+                    <div class="control">
+                        <div class="control-head"><label for="density">Point density</label><output id="densityValue" for="density">50,000</output></div>
+                        <input id="density" type="range" min="10000" max="150000" step="5000" value="50000">
+                        <div class="range-ends"><span>10k</span><span>150k</span></div>
+                    </div>
+
+                    <div class="control">
+                        <div class="control-head"><label for="step">Step ratio</label><output id="stepValue" for="step">0.618</output></div>
+                        <input id="step" type="range" min="0.35" max="0.75" step="0.001" value="0.618">
+                        <div class="range-ends"><span>0.35</span><span>0.75</span></div>
+                    </div>
+
+                    <div class="control">
+                        <div class="control-head"><label for="palette">Color study</label></div>
+                        <select id="palette" aria-label="Color palette">
+                            <option value="citrus">01 / Citrus</option>
+                            <option value="reef">02 / Reef</option>
+                            <option value="ember">03 / Ember</option>
+                        </select>
+                    </div>
+
+                    <div class="control">
+                        <div class="control-head"><span class="unit">CURRENT PALETTE</span><div class="swatches" aria-hidden="true"><i class="swatch citrus"></i><i class="swatch reef"></i><i class="swatch ember"></i></div></div>
+                    </div>
+
+                    <div class="actions">
+                        <button class="primary" id="toggle" type="button">Pause</button>
+                        <button class="secondary" id="reset" type="button">Regenerate</button>
+                        <button class="secondary export" id="export" type="button">Export image</button>
+                    </div>
+                </aside>
+
+                <div class="canvas-area">
+                    <div class="canvas-meta"><span class="live" id="status">Generating</span><span id="progress">0 / 50,000</span></div>
+                    <div class="canvas-frame" id="canvasFrame">
+                        <canvas id="fractalCanvas" aria-label="Animated pentagon fractal visualization"></canvas>
+                        <span class="canvas-hint">CHAOS GAME / N = 5</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer"><span>FIVE VERTICES. ONE SIMPLE RULE.</span><span>MADE OF MANY SMALL DECISIONS.</span></footer>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const context = canvas.getContext('2d');
+        const frame = document.getElementById('canvasFrame');
+        const density = document.getElementById('density');
+        const step = document.getElementById('step');
+        const palette = document.getElementById('palette');
+        const densityValue = document.getElementById('densityValue');
+        const stepValue = document.getElementById('stepValue');
+        const status = document.getElementById('status');
+        const progress = document.getElementById('progress');
+        const toggle = document.getElementById('toggle');
+        const colors = {
+            citrus: '#b6ef67',
+            reef: '#58d7c2',
+            ember: '#ff765e'
+        };
+
+        let vertices = [];
+        let current = { x: 0, y: 0 };
+        let drawn = 0;
+        let paused = false;
+        let frameRequest = 0;
+        let pixelRatio = 1;
+
+        function resizeCanvas() {
+            const size = Math.floor(Math.min(frame.clientWidth, frame.clientHeight));
+            if (!size) return;
+            pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.round(size * pixelRatio);
+            canvas.height = Math.round(size * pixelRatio);
+            canvas.style.width = `${size}px`;
+            canvas.style.height = `${size}px`;
+            context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+            const center = size / 2;
+            const radius = size * 0.43;
+            vertices = Array.from({ length: 5 }, (_, index) => {
+                const angle = (index * 2 * Math.PI) / 5 - Math.PI / 2;
+                return { x: center + radius * Math.cos(angle), y: center + radius * Math.sin(angle) };
+            });
+            restart();
+        }
+
+        function restart() {
+            cancelAnimationFrame(frameRequest);
+            drawn = 0;
+            paused = false;
+            current = { x: canvas.width / (2 * pixelRatio), y: canvas.height / (2 * pixelRatio) };
+            context.clearRect(0, 0, canvas.width / pixelRatio, canvas.height / pixelRatio);
+            toggle.textContent = 'Pause';
+            status.textContent = 'Generating';
+            updateProgress();
+            frameRequest = requestAnimationFrame(renderBatch);
+        }
+
+        function renderBatch() {
+            if (paused) return;
+            const target = Number(density.value);
+            const end = Math.min(drawn + 4000, target);
+            context.fillStyle = colors[palette.value];
+            for (; drawn < end; drawn++) {
+                const vertex = vertices[Math.floor(Math.random() * vertices.length)];
+                current.x += Number(step.value) * (vertex.x - current.x);
+                current.y += Number(step.value) * (vertex.y - current.y);
+                context.fillRect(current.x, current.y, 1.15, 1.15);
+            }
+            updateProgress();
+            if (drawn < target) frameRequest = requestAnimationFrame(renderBatch);
+            else status.textContent = 'Complete';
+        }
+
+        function updateProgress() {
+            progress.textContent = `${drawn.toLocaleString()} / ${Number(density.value).toLocaleString()}`;
+        }
+
+        density.addEventListener('input', () => {
+            densityValue.textContent = Number(density.value).toLocaleString();
+            restart();
+        });
+        step.addEventListener('input', () => {
+            stepValue.textContent = Number(step.value).toFixed(3);
+            restart();
+        });
+        palette.addEventListener('change', restart);
+        toggle.addEventListener('click', () => {
+            if (drawn >= Number(density.value)) restart();
+            else {
+                paused = !paused;
+                toggle.textContent = paused ? 'Resume' : 'Pause';
+                status.textContent = paused ? 'Paused' : 'Generating';
+                if (!paused) frameRequest = requestAnimationFrame(renderBatch);
+            }
+        });
+        document.getElementById('reset').addEventListener('click', restart);
+        document.getElementById('export').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'cresent-pentagon-fractal.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        new ResizeObserver(resizeCanvas).observe(frame);
+    </script>
+</body>
+</html>
