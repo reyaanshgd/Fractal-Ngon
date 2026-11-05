@@ -4,22 +4,49 @@
     <meta charset="UTF-8">
     <title>Pentagon Fractal</title>
     <style>
+
         body {
             background-color: #111;
-            display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
         }
+
         canvas {
             background-color: #000;
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
         }
+
+        #dragBox {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #fff;
+            cursor: move;
+            user-select: none;
+        }
+
+        #dragBox input {
+            width: 60px;
+            box-sizing: border-box;
+            margin-left: 6px;
+        }
+
     </style>
 </head>
 <body>
     <canvas id="fractalCanvas" width="600" height="600"></canvas>
+
+    <div id="dragBox">
+        <strong>Sides:</strong>
+        <input type="number" id="sidesInput" value="10" min="3" max="50">
+    </div>
+
     <script>
         const canvas = document.getElementById('fractalCanvas');
         const ctx = canvas.getContext('2d');
@@ -29,28 +56,49 @@
         const radius = 250;
         const centerX = width / 2;
         const centerY = height / 2;
+        const input = document.getElementById('sidesInput');
 
-        const vertices = [];
-        for (let i = 0; i < 5; i++) {
-            const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
-            vertices.push({
-                x: centerX + radius * Math.cos(angle),
-                y: centerY + radius * Math.sin(angle)
-            });
+        function draw() {
+            const sides = parseInt(input.value) || 10;
+            const vertices = [];
+            for (let i = 0; i < sides; i++) {
+                const angle = (i * 2 * Math.PI) / sides - Math.PI / 2;
+                vertices.push({
+                    x: centerX + radius * Math.cos(angle),
+                    y: centerY + radius * Math.sin(angle)
+                });
+            }
+
+            let current = { x: centerX, y: centerY };
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = 'cyan';
+            for (let i = 0; i < 50000; i++) {
+                const target = vertices[Math.floor(Math.random() * vertices.length)];
+                current.x = current.x + 0.618 * (target.x - current.x);
+                current.y = current.y + 0.618 * (target.y - current.y);
+                ctx.fillRect(current.x, current.y, 1, 1);
+            }
         }
 
-        let current = { x: centerX, y: centerY };
+        input.addEventListener('input', draw);
+        draw();
 
-        ctx.fillStyle = 'cyan';
-        for (let i = 0; i < 50000; i++) {
-            const target = vertices[Math.floor(Math.random() * vertices.length)];
-            
-            current.x = current.x + 0.618 * (target.x - current.x);
-            current.y = current.y + 0.618 * (target.y - current.y);
-
-            // Draw pixel
-            ctx.fillRect(current.x, current.y, 1, 1);
-        }
+        const box = document.getElementById('dragBox');
+        let dragging = false, ox, oy;
+        box.addEventListener('mousedown', e => {
+            if (e.target.tagName === 'INPUT') return;
+            dragging = true;
+            ox = e.clientX - box.offsetLeft;
+            oy = e.clientY - box.offsetTop;
+        });
+        document.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            box.style.left = (e.clientX - ox) + 'px';
+            box.style.top  = (e.clientY - oy) + 'px';
+        });
+        document.addEventListener('mouseup', () => dragging = false);
     </script>
 </body>
-</html>
+</html>   
