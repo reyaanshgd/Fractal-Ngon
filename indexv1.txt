@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Polygon Fractal</title>
+    <style>
+        :root { --line: rgb(255, 0, 0); }
+
+        body {
+            background-color: #000;
+            margin: 0;
+            overflow: hidden;
+            font-family: "Courier New", monospace;
+        }
+        canvas {
+            display: block;
+            cursor: grab;
+            touch-action: none;
+        }    
+        canvas.dragging { cursor: grabbing; }
+
+        #dragBox {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid var(--line);
+            color: var(--line);
+            cursor: move;
+            user-select: none;
+            font-size: 13px;
+        }
+        #dragBox strong { font-weight: normal; letter-spacing: 1px; text-transform: uppercase; }
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        #dragBox input {
+            width: 60px;
+            box-sizing: border-box;
+            margin-left: 6px;
+            background: #000;
+            color: var(--line);
+            border: 1px solid var(--line);
+            font: inherit;
+            padding: 2px 4px;
+            outline: none;
+        }
+        #dragBox button {
+            margin-top: 8px;
+            width: 100%;
+            background: #000;
+            color: var(--line);
+            border: 1px solid var(--line);
+            font: inherit;
+            padding: 3px 0;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        #dragBox button:hover { background: var(--line); color: #000; }
+        #info {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid var(--line);
+            font-size: 12px;
+        }
+        #hint {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid var(--line);
+            font-size: 11px;
+            opacity: 0.7;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="dragBox">
+        <div class="row">
+            <strong>Sides:</strong>
+            <input type="number" id="sidesInput" value="5" min="3" max="20">
+        </div>
+        <div class="row">
+            <strong>Depth:</strong>
+            <input type="number" id="depthInput" value="3" min="1" max="5">
+        </div>
+        <div class="row">
+            <strong>3D height:</strong>
+            <input type="number" id="heightInput" value="80" min="0" max="300" step="10">
+        </div>
+        <button id="resetBtn">Reset view</button>
+        <div id="info">3D PRISMS: 0</div>
+        <div id="hint">Left-drag: rotate 3D<br>Right-drag: pan<br>Scroll: zoom<br>Double-click: reset</div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+
+        const ambientLight = new THREE.AmbientLight(0x330000, 1.5);
+        scene.add(ambientLight);
+
+        const dirLight1 = new THREE.DirectionalLight(0xff2222, 2.5);
+        dirLight1.position.set(300, 400, 500);
+        scene.add(dirLight1);
+
+        const dirLight2 = new THREE.DirectionalLight(0x880000, 1.2);
+        dirLight2.position.set(-400, -300, -200);
+        scene.add(dirLight2);
+
+        const RATIO = 1 - 0.618;
+        const R = 250;
+
+        const sidesInput = document.getElementById('sidesInput');
+        const depthInput = document.getElementById('depthInput');
+        const heightInput = document.getElementById('heightInput');
+        const info = document.getElementById('info');
+
+        let fractalGroup = new THREE.Group();
+        scene.add(fractalGroup);
+
+        const solidMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1a0000,
+            emissive: 0x220000,
+            roughness: 0.4,
+            metalness: 0.5,
+            polygonOffset: true,
+            polygonOffsetFactor: 1,
+            polygonOffsetUnits: 1,
+            side: THREE.DoubleSide
+        });
+
+        const edgeMaterial = new THREE.LineBasicMaterial({
+             color: 0xff0000
+        });
+
+        function build3DFractal() {
+            while (fractalGroup.children.length > 0) {
+                const child = fractalGroup.children[0];
+                fractalGroup.remove(child);
+                child.geometry.dispose();
+                if (child.material) child.material.dispose();
+            }
+
+            const sides = Math.max(3, Math.min(50, parseInt(sidesInput.value) || 10));
+            const maxDepth = Math.max(1, Math.min(5, parseInt(depthInput.value) || 3));
+            const height = parseFloat(heightInput.value) || 80;
+
+            const vertices = [];
+            const shape = new THREE.Shape();
+            for (let i = 0; i < sides; i++) {
+                const a = (i * 2 * Math.PI) / sides - Math.PI / 2;
+                const x = R * Math.cos(a);
+                const y = R * Math.sin(a);
+                vertices.push(new THREE.Vector2(x, y));
+                if (i === 0) shape.moveTo(x, y); 
+                else shape.lineTo(x, y);
+            }
+            shape.closePath();
+
+            const baseThickness = 40;
+            const extrudeGeo = new THREE.ExtrudeGeometry(shape, { depth: baseThickness, bevelEnabled: false });
+            extrudeGeo.translate(0, 0, -baseThickness / 2);
+            const edgesGeo = new THREE.EdgesGeometry(extrudeGeo);
+
+            let level = [{ x: 0, y: 0, z: 0, s: 1 }];
+            for (let d = 1; d < maxDepth; d++) {
+                const next = [];
+                if (level.length * sides > 8000) break;
+
+                for (const n of level) {
+                    for (const v of vertices) {
+                        next.push({
+                            x: n.x + n.s * 0.618 * v.x,
+                            y: n.y + n.s * 0.618 * v.y,
+                            z: n.z + n.s * height,
+                            s: n.s * RATIO
+                        });
+                    }
+                }
+                level = next;
+            }
+
+            const count = level.length;
+            const instancedMesh = new THREE.InstancedMesh(extrudeGeo, solidMaterial, count);
+            const dummy = new THREE.Object3D();
+
+            const linePositions = [];
+            const baseEdgePos = edgesGeo.attributes.position.array;
+
+            for (let i = 0; i < count; i++) {
+                const n = level[i];
+                dummy.position.set(n.x, n.y, n.z);
+                dummy.scale.set(n.s, n.s, n.s);
+                dummy.updateMatrix();
+                instancedMesh.setMatrixAt(i, dummy.matrix);
+
+                for (let j = 0; j < baseEdgePos.length; j += 3) {
+                    linePositions.push(
+                        baseEdgePos[j] * n.s + n.x,
+                        baseEdgePos[j + 1] * n.s + n.y,
+                        baseEdgePos[j + 2] * n.s + n.z
+                    );
+                }
+            }
+            
+            instancedMesh.instanceMatrix.needsUpdate = true;
+            fractalGroup.add(instancedMesh);
+
+            const mergedEdgesGeo = new THREE.BufferGeometry();
+            mergedEdgesGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+            const wireLines = new THREE.LineSegments(mergedEdgesGeo, edgeMaterial);
+            fractalGroup.add(wireLines);
+
+            info.textContent = `3D PRISMS: ${count.toLocaleString()}`;
+        }
+
+        function resetView() {
+            camera.position.set(0, -450, 650);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        sidesInput.addEventListener('input', build3DFractal);
+        depthInput.addEventListener('input', build3DFractal);
+        heightInput.addEventListener('input', build3DFractal);
+        document.getElementById('resetBtn').addEventListener('click', resetView);
+        renderer.domElement.addEventListener('dblclick', resetView);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        const box = document.getElementById('dragBox');
+        let dragging = false, ox, oy;
+        box.addEventListener('mousedown', e => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+            dragging = true;
+            ox = e.clientX - box.offsetLeft;
+            oy = e.clientY - box.offsetTop;
+        });
+        document.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            box.style.left = (e.clientX - ox) + 'px';
+            box.style.top = (e.clientY - oy) + 'px';
+        });
+        document.addEventListener('mouseup', () => dragging = false);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        resetView();
+        build3DFractal();
+        animate();
+    </script>
+</body>
+</html>
