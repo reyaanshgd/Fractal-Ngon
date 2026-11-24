@@ -2,6 +2,10 @@
 
 An interactive, zoomable 3D fractal built with Three.js. A regular polygon is extruded into a thin prism. At each vertex, a smaller copy of the prism (scaled by about 0.382) is placed and raised along the Z axis. The pattern repeats. Only the parts of the fractal you can currently see are generated, so you can keep zooming in and new detail appears.
 
+## DEMO
+
+https://reyaanshgd.github.io/Fractal-Ngon/
+
 ## Features
 - Adjustable polygon: 3 to 20 sides.
 - Adjustable 3D height: controls how far each generation is lifted along Z (0 to 300). At 0 the fractal is flat.
@@ -42,10 +46,6 @@ Three.js 0.160.0 and its OrbitControls add-on, both loaded from unpkg.
 # Cresent Fractal n-gon v1
 
 Give user the ability to add, toggle, and create infinite shapes, to their liking!
-
-## DEMO
-
-https://reyaanshgd.github.io/Cresent-Fractal-pentagon/
 
 ## Controls
 
